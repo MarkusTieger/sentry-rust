@@ -189,6 +189,17 @@ impl<Request> HubProvider<Arc<Hub>, Request> for NewFromTopProvider {
     }
 }
 
+struct SyncPhantomData<T>(PhantomData<T>);
+unsafe impl<T> Sync for SyncPhantomData<T> {}
+
+impl<T> Default for SyncPhantomData<T> {
+
+    fn default() -> Self {
+        SyncPhantomData(PhantomData)
+    }
+
+}
+
 /// Tower layer that binds a specific Sentry hub for each request made.
 pub struct SentryLayer<P, H, Request>
 where
@@ -196,7 +207,7 @@ where
     H: Into<Arc<Hub>>,
 {
     provider: P,
-    _hub: PhantomData<(H, Request)>,
+    _hub: SyncPhantomData<(H, Request)>,
 }
 
 impl<S, P, H, Request> Layer<S> for SentryLayer<P, H, Request>
@@ -210,7 +221,7 @@ where
         SentryService {
             service,
             provider: self.provider.clone(),
-            _hub: PhantomData,
+            _hub: SyncPhantomData::default(),
         }
     }
 }
@@ -223,7 +234,7 @@ where
     fn clone(&self) -> Self {
         Self {
             provider: self.provider.clone(),
-            _hub: PhantomData,
+            _hub: SyncPhantomData::default(),
         }
     }
 }
@@ -237,7 +248,7 @@ where
     pub fn new(provider: P) -> Self {
         Self {
             provider,
-            _hub: PhantomData,
+            _hub: SyncPhantomData::default(),
         }
     }
 }
@@ -250,7 +261,7 @@ where
 {
     service: S,
     provider: P,
-    _hub: PhantomData<(H, Request)>,
+    _hub: SyncPhantomData<(H, Request)>,
 }
 
 impl<S, Request, P, H> Service<Request> for SentryService<S, P, H, Request>
@@ -284,7 +295,7 @@ where
         Self {
             service: self.service.clone(),
             provider: self.provider.clone(),
-            _hub: PhantomData,
+            _hub: SyncPhantomData::default(),
         }
     }
 }
@@ -308,7 +319,7 @@ impl<Request> NewSentryLayer<Request> {
     pub fn new_from_top() -> Self {
         Self {
             provider: NewFromTopProvider,
-            _hub: PhantomData,
+            _hub: SyncPhantomData::default(),
         }
     }
 }
@@ -322,7 +333,7 @@ impl<S, Request> NewSentryService<S, Request> {
         Self {
             provider: NewFromTopProvider,
             service,
-            _hub: PhantomData,
+            _hub: SyncPhantomData::default(),
         }
     }
 }
